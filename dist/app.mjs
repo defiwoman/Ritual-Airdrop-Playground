@@ -1,4 +1,7 @@
+import { renderAirdropCard } from './card.mjs';
 import { ROLES, defaults, calculate, scenarioData, readScenario } from './model.mjs';
+import { DISCLAIMER } from './config.mjs';
+import { requestJson, createVerifier, resultMatches } from './api.mjs';
 
 const $ = id => document.getElementById(id);
 const storageKey = 'ritual-airdrop-playground-v1';
@@ -10,7 +13,13 @@ const priceFormat = n => '$' + new Intl.NumberFormat('en-US', { maximumFractionD
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
 const fmt = n => Number.isFinite(n) ? integers.format(n) : '—';
 const money = n => Number.isFinite(n) ? usd.format(n) : '—';
+const initialSharedId = new URL(location.href).searchParams.get('s');
 let state = defaults();
+let revision = 0;
+let publishing = false;
+let loadedShare = null;
+let shareController;
+let loadGeneration = 0;
 let output;
 let startupMessage = '';
 let toastTimer;
@@ -22,6 +31,11 @@ let savedScenarios = [];
 const savedKey = 'ritual-scenario-board-v1';
 const brandLogo = new Image();
 brandLogo.src = 'assets/ritual-logo.jpg';
+const verifier = createVerifier({ onStatus: (kind, message) => {
+  $('server-status').textContent = message;
+  $('server-status').dataset.status = kind;
+  $('retry-verification').hidden = !['offline', 'error'].includes(kind);
+} });
 
 try {
   const saved = JSON.parse(localStorage.getItem(savedKey) || '[]');
@@ -32,11 +46,11 @@ try {
 
 try {
   const shared = new URL(location.href).searchParams.get('scenario');
-  if (shared) {
+  if (shared && !initialSharedId) {
     if (shared.length > 6000) throw new Error('Scenario too long');
     state = readScenario(JSON.parse(atob(shared.replace(/-/g, '+').replace(/_/g, '/'))));
     startupMessage = 'Shared scenario loaded. All numbers are hypothetical.';
-  } else {
+  } else if (!initialSharedId) {
     const saved = localStorage.getItem(storageKey);
     if (saved) state = readScenario(JSON.parse(saved));
   }
@@ -68,14 +82,16 @@ function assumptionsChanged() {
 }
 
 function update(animate = false) {
+  revision++;
   output = calculate(state);
+  renderAirdropCard(state, output, sharedUrl);
   $('extra-count').textContent = `${state.extras.length} SELECTED`;
   $('clear-extras').disabled = state.extras.length === 0;
   $('model-status').textContent = assumptionsChanged() ? 'CUSTOM ASSUMPTIONS' : 'REFERENCE DEFAULTS';
   const budget = Number.isFinite(state.pool * state.share) ? state.pool * state.share / 100 : NaN;
   $('summary-pool').textContent = Number.isFinite(budget) ? compact.format(budget) + ' RITUAL' : '—';
   $('stat-pool').replaceChildren(document.createTextNode(fmt(state.pool) + ' '), small('RITUAL'));
-  $('stat-pool').nextElementSibling.textContent = state.pool === 50000000 ? 'From the published airdrop pool' : 'Your custom total-pool assumption';
+  $('stat-pool').nextElementSibling.textContent = state.pool === 50000000 ? 'Editable community pool assumption' : 'Your custom total-pool assumption';
   $('stat-price').replaceChildren(document.createTextNode(Number.isFinite(state.price) ? priceFormat(state.price) + ' ' : '— '), small('USD'));
   const memberships = ROLES.reduce((sum, r) => sum + state.roles[r.id].count, 0);
   $('stat-memberships').replaceChildren(document.createTextNode(fmt(memberships) + ' '), small('across 11 roles'));
@@ -116,6 +132,8 @@ function update(animate = false) {
   $('mobile-usd').textContent = output.valid ? money(output.usd) : 'View result';
   $('pin-scenario').disabled = !output.valid || savedScenarios.length >= 3;
   $('pin-counter').textContent = `${savedScenarios.length} / 3`;
+  $('create-share').disabled = !output.valid || publishing;
+  verifier.schedule(output.valid ? scenarioData(state) : null, output);
   clearTimeout(liveTimer);
   liveTimer = setTimeout(() => { $('result-live').textContent = output.valid ? `Hypothetical estimate: ${fmt(output.tokens)} RITUAL, worth ${money(output.usd)} at an assumed price of ${priceFormat(state.price)}.` : output.errors[0]; }, 350);
   if (animate && output.valid) {
@@ -258,7 +276,7 @@ function sharedUrl() {
 
 function resultText() {
   const names = output.selected.map(r => r.name).join(' + ');
-  return `My hypothetical Ritual bag 👀\n\n${names}\n≈ ${fmt(output.tokens)} RITUAL\n≈ ${money(output.usd)} at an assumed ${priceFormat(state.price)}/token\n\nModel: ${fmt(state.pool)} total tokens × ${state.share}% assigned to these roles; exponential weights from editable community assumptions.\n\nJust for fun. Unofficial scenario, not confirmed rewards, eligibility or a price forecast.\nFull assumptions: ${sharedUrl()}\n\ngRitual 💚`;
+  return `My hypothetical Ritual bag 👀\n\n${names}\n≈ ${fmt(output.tokens)} RITUAL\n≈ ${money(output.usd)} at an assumed ${priceFormat(state.price)}/token\n\nModel: ${fmt(state.pool)} total tokens × ${state.share}% assigned to these roles; exponential weights from editable community assumptions.\n\n${DISCLAIMER}\nFull assumptions: ${sharedUrl()}\n\ngRitual 💚`;
 }
 
 async function copy(text, message) {
@@ -286,43 +304,68 @@ function wrapText(ctx, text, x, y, width, lineHeight) {
   return y + lineHeight;
 }
 
-$('download-card').addEventListener('click', async () => {
-  if (!output.valid) return;
-  const cardState = readScenario(scenarioData(state));
-  const cardOutput = calculate(cardState);
-  try { await brandLogo.decode(); } catch { toast('The Ritual logo could not load. Please try again.'); return; }
-  const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 1100;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) { toast('Image download is unavailable in this browser. Use Copy my result.'); return; }
-  ctx.fillStyle = '#1a6b4a'; ctx.fillRect(0, 0, 1200, 1100);
-  ctx.strokeStyle = '#ffffff0b'; ctx.lineWidth = 1;
-  for (let i = 0; i < 1200; i += 60) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1100); ctx.stroke(); }
-  for (let i = 0; i < 1100; i += 60) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1200, i); ctx.stroke(); }
-  ctx.drawImage(brandLogo, 65, 39, 108, 108);
-  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 35px Arial'; ctx.fillText('ritual / airdrop playground', 196, 90);
-  ctx.font = '16px Arial'; ctx.fillStyle = '#c5e8d9'; ctx.fillText('COMMUNITY EXPERIMENT · UNOFFICIAL · JUST FOR FUN', 196, 130);
-  ctx.fillStyle = '#f4f9ee'; ctx.font = 'italic 58px Georgia'; ctx.fillText('My hypothetical bag.', 70, 230);
-  ctx.fillStyle = '#ffffff'; fitText(ctx, fmt(cardOutput.tokens), 65, 365, 1050, 128);
-  ctx.font = '24px Arial'; ctx.fillText('RITUAL TOKENS', 72, 412);
-  ctx.fillStyle = '#ffffff'; fitText(ctx, money(cardOutput.usd), 70, 490, 1050, 52);
-  ctx.font = '20px Arial'; ctx.fillStyle = '#c5e8d9'; ctx.fillText(`at an assumed ${priceFormat(cardState.price)} per RITUAL`, 72, 529);
-  ctx.strokeStyle = '#61a98a'; ctx.beginPath(); ctx.moveTo(70, 562); ctx.lineTo(1130, 562); ctx.stroke();
-  ctx.font = '16px Arial'; ctx.fillStyle = '#c5e8d9'; ctx.fillText('MY ROLES', 70, 602);
-  let y = 641;
-  for (const r of cardOutput.selected) {
-    ctx.fillStyle = '#ffffff'; ctx.font = '21px Arial'; ctx.textAlign = 'left'; ctx.fillText(r.name, 70, y);
-    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right'; ctx.fillText(`${decimals.format(r.perHolder)} RITUAL`, 1130, y); ctx.textAlign = 'left'; y += 34;
-  }
-  ctx.fillStyle = '#c5e8d9'; ctx.font = '18px Arial';
-  ctx.fillText(`Modelled pool: ${fmt(cardOutput.budget)} RITUAL (${cardState.share}% of ${fmt(cardState.pool)})`, 70, 922);
-  ctx.fillText('Exponential weights · Unverified role counts · Extra roles add together', 70, 954);
-  ctx.fillStyle = '#ffffff'; ctx.font = '18px Arial';
-  wrapText(ctx, 'A hypothetical scenario. Not confirmed rewards, eligibility, a claimable balance or a price forecast.', 70, 1007, 1060, 27);
-  canvas.toBlob(blob => {
-    if (!blob) { toast('Could not create the image. Use Copy my result instead.'); return; }
-    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'my-hypothetical-ritual-bag.png'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000); toast('Your just-for-fun result card is ready.');
-  }, 'image/png');
-});
+$('download-card').addEventListener('click', () => $('card-download').click());
 
 buildInputs(); syncInputs(); update(); renderBoard();
 if (startupMessage) toast(startupMessage);
+
+
+$('retry-verification').addEventListener('click', () => verifier.schedule(output.valid ? scenarioData(state) : null, output));
+$('create-share').addEventListener('click', async () => {
+  if (!output.valid || publishing) return;
+  publishing = true;
+  $('create-share').disabled = true;
+  $('create-share').textContent = 'Creating share link…';
+  $('share-status').textContent = 'Saving only this snapshot of your roles and assumptions…';
+  $('share-output').hidden = true;
+  const snapshot = scenarioData(state);
+  const expected = calculate(readScenario(snapshot));
+  const snapshotRevision = revision;
+  try {
+    const saved = await requestJson('/api/scenarios', { payload: snapshot });
+    if (!/^[a-f0-9]{32}$/.test(saved.id) || saved.sharePath !== `/?s=${saved.id}` || !resultMatches(expected, saved.result)) throw new Error('The saved result could not be verified. Please retry.');
+    $('share-url').value = new URL(saved.sharePath, location.origin).href;
+    $('share-output').hidden = false;
+    $('share-status').textContent = snapshotRevision === revision ? 'Share link created. Anyone with the link can view this snapshot.' : 'Link created for your earlier snapshot. Your current edits are kept.';
+    toast('Your shared snapshot is saved. Copy its link below.');
+  } catch (error) {
+    $('share-status').textContent = `${error.message} Nothing is confirmed saved. You can still copy a local scenario link.`;
+  } finally {
+    publishing = false;
+    $('create-share').disabled = !output.valid;
+    $('create-share').textContent = 'Create share link';
+  }
+});
+$('copy-short-link').addEventListener('click', () => copy($('share-url').value, 'Saved snapshot link copied.'));
+
+function sharedNotice(message, action, label = 'Retry loading') {
+  $('shared-notice').hidden = false;
+  $('shared-message').textContent = message;
+  $('shared-action').hidden = !action;
+  $('shared-action').textContent = label;
+  $('shared-action').onclick = action || null;
+}
+function applyShared(data) {
+  state = readScenario(data.scenario); syncInputs(); update(true);
+  sharedNotice('Shared snapshot loaded. Its original roles and assumptions are restored. This remains a hypothetical simulation.');
+}
+async function loadShared(id) {
+  const generation = ++loadGeneration;
+  const initialRevision = revision;
+  shareController?.abort(); shareController = new AbortController();
+  if (!/^[a-f0-9]{32}$/.test(id)) { sharedNotice('This shared link has an invalid ID. You can still use the local calculator.'); return; }
+  sharedNotice('Loading the shared snapshot… You can keep using the calculator.');
+  try {
+    const saved = await requestJson(`/api/scenarios/${id}`, { signal: shareController.signal });
+    if (generation !== loadGeneration) return;
+    const expected = calculate(readScenario(saved.scenario));
+    if (!expected.valid || !resultMatches(expected, saved.result)) throw new Error('This shared calculation could not be reproduced.');
+    loadedShare = saved;
+    if (revision === initialRevision) applyShared(saved);
+    else sharedNotice('The shared snapshot is ready. Loading it will replace your current selections.', () => applyShared(loadedShare), 'Load shared snapshot');
+  } catch (error) {
+    if (generation !== loadGeneration || error.name === 'AbortError') return;
+    sharedNotice(`${error.message} Your local calculator is available.`, error.status === 404 || error.status === 400 ? null : () => loadShared(id));
+  }
+}
+if (initialSharedId !== null) loadShared(initialSharedId);

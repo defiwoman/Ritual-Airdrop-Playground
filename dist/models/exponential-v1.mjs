@@ -1,0 +1,99 @@
+// Versioned model. Preserve payout semantics for saved v1 snapshots.
+export const ROLES = Object.freeze([
+  { id: 'bitty', name: 'Bitty', kind: 'main', count: 513, weight: 1, icon: 'seed', description: 'A little bitty beginning.' },
+  { id: 'ritty', name: 'Ritty', kind: 'main', count: 517, weight: 1.8, icon: 'spark', description: 'Finding your Ritual rhythm.' },
+  { id: 'ritualist', name: 'Ritualist', kind: 'main', count: 185, weight: 2.7, icon: 'diamond', description: 'Part of the Ritual.' },
+  { id: 'zealot', name: 'Zealot', kind: 'main', count: 22, weight: 3.6, icon: 'flame', description: 'A little extra conviction.' },
+  { id: 'radiant', name: 'Radiant Ritualist', kind: 'main', count: 9, weight: 4.5, icon: 'sun', description: 'Bringing the radiance.' },
+  { id: 'node', name: 'Node Runner', kind: 'extra', count: 500, weight: 2.5, icon: 'node', description: 'Keeping things running.' },
+  { id: 'prime', name: 'Prime Genesis', kind: 'extra', count: 100, weight: 1.8, icon: 'crown', description: 'An extra Genesis track.' },
+  { id: 'builder', name: 'dApp Builder', kind: 'extra', count: 207, weight: 1.8, icon: 'code', description: 'You came here to build.' },
+  { id: 'early', name: 'Early Genesis', kind: 'extra', count: 400, weight: 1.4, icon: 'clock', description: 'Early to the experiment.' },
+  { id: 'frenrug', name: 'Frenrug', kind: 'extra', count: 1000, weight: 1.4, icon: 'chat', description: 'Part of the Frenrug story.' },
+  { id: 'genesis', name: 'Genesis', kind: 'extra', count: 500, weight: 1, icon: 'orbit', description: 'Another piece of your journey.' },
+]);
+
+export function defaults() {
+  return { version: 1, pool: 50000000, share: 100, price: 0.05, main: 'bitty', extras: [], roles: Object.fromEntries(ROLES.map(r => [r.id, { count: r.count, weight: r.weight }])) };
+}
+
+export const effectiveWeight = weight => Math.exp(weight - 1);
+
+export function validate(s) {
+  const errors = [];
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return ['Enter a scenario object.'];
+  if (s.version !== 1) errors.push('Unsupported scenario version.');
+  if (!Number.isFinite(s.pool) || s.pool < 1 || s.pool > 1e12) errors.push('Enter a token pool between 1 and 1 trillion.');
+  if (!Number.isFinite(s.share) || s.share < 0 || s.share > 100) errors.push('The modelled share must be between 0% and 100%.');
+  if (!Number.isFinite(s.price) || s.price < 0 || s.price > 100000) errors.push('Enter a token price between $0 and $100,000.');
+  for (const r of ROLES) {
+    const v = s.roles?.[r.id];
+    if (!v || !Number.isInteger(v.count) || v.count < 0 || v.count > 10000000) errors.push(`${r.name}: enter a whole holder count between 0 and 10 million.`);
+    if (!v || !Number.isFinite(v.weight) || v.weight < 0 || v.weight > 10) errors.push(`${r.name}: enter a weight between 0 and 10.`);
+  }
+  if (!ROLES.some(r => r.kind === 'main' && r.id === s.main)) errors.push('Choose one main role.');
+  if (!Array.isArray(s.extras) || new Set(s.extras).size !== s.extras.length || s.extras.some(id => !ROLES.some(r => r.kind === 'extra' && r.id === id))) errors.push('Choose each extra role at most once.');
+  return errors;
+}
+
+export function calculate(s) {
+  const errors = validate(s);
+  if (errors.length) return { valid: false, errors, rows: [] };
+  const budget = s.pool * s.share / 100;
+  const denominator = ROLES.reduce((sum, r) => sum + s.roles[r.id].count * effectiveWeight(s.roles[r.id].weight), 0);
+  if (!denominator) return { valid: false, errors: ['At least one role must have an eligible holder.'], rows: [] };
+  const rows = ROLES.map(r => {
+    const { count, weight } = s.roles[r.id];
+    const multiplier = effectiveWeight(weight);
+    const perHolder = count ? budget * multiplier / denominator : 0;
+    return { ...r, count, weight, multiplier, perHolder, allocation: count * perHolder, portion: count * multiplier / denominator * 100 };
+  });
+  const selected = rows.filter(r => r.id === s.main || s.extras.includes(r.id));
+  for (const r of selected) if (r.count === 0) errors.push(`${r.name} has zero holders in this scenario. Change its count or choose another role.`);
+  if (errors.length) return { valid: false, errors, rows, budget, denominator };
+  const tokens = selected.reduce((sum, r) => sum + r.perHolder, 0);
+  return { valid: true, errors: [], rows, selected, budget, denominator, tokens, usd: tokens * s.price, memberships: rows.reduce((n, r) => n + r.count, 0), totalAllocation: rows.reduce((n, r) => n + r.allocation, 0) };
+}
+
+export function scenarioData(s) {
+  return { v: 1, p: s.pool, s: s.share, t: s.price, m: s.main, e: [...s.extras], r: ROLES.map(r => [s.roles[r.id].count, s.roles[r.id].weight]) };
+}
+
+export class ScenarioValidationError extends Error {
+  constructor(issues) {
+    super('Check the scenario assumptions.');
+    this.name = 'ScenarioValidationError';
+    this.issues = issues;
+  }
+}
+
+export function readScenario(data) {
+  const issues = [];
+  const allowed = ['v', 'p', 's', 't', 'm', 'e', 'r'];
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new ScenarioValidationError([{ field: '$', message: 'Expected a scenario object.' }]);
+  }
+  for (const key of Object.keys(data)) if (!allowed.includes(key)) issues.push({ field: key, message: 'Unknown field.' });
+  for (const key of allowed) if (!Object.hasOwn(data, key)) issues.push({ field: key, message: 'Required field.' });
+  if (data.v !== 1) issues.push({ field: 'v', message: 'Unsupported scenario version.' });
+  for (const [field, min, max] of [['p',1,1e12], ['s',0,100], ['t',0,100000]]) {
+    if (!Number.isFinite(data[field]) || data[field] < min || data[field] > max) issues.push({ field, message: `Enter a finite number between ${min} and ${max}.` });
+  }
+  if (!ROLES.some(r => r.kind === 'main' && r.id === data.m)) issues.push({ field: 'm', message: 'Choose exactly one known main role.' });
+  if (!Array.isArray(data.e) || data.e.length > 6 || new Set(data.e).size !== data.e.length || data.e.some(id => !ROLES.some(r => r.kind === 'extra' && r.id === id))) {
+    issues.push({ field: 'e', message: 'Choose distinct additional roles only.' });
+  }
+  if (!Array.isArray(data.r) || data.r.length !== ROLES.length) {
+    issues.push({ field: 'r', message: 'Supply all 11 role assumptions in the documented order.' });
+  } else data.r.forEach((row, i) => {
+    if (!Array.isArray(row) || row.length !== 2) {
+      issues.push({ field: `r.${i}`, message: 'Expected [count, weight].' }); return;
+    }
+    if (!Number.isInteger(row[0]) || row[0] < 0 || row[0] > 10000000) issues.push({ field: `r.${i}.0`, message: 'Count must be a whole number from 0 to 10000000.' });
+    if (!Number.isFinite(row[1]) || row[1] < 0 || row[1] > 10) issues.push({ field: `r.${i}.1`, message: 'Weight must be a finite number from 0 to 10.' });
+  });
+  if (issues.length) throw new ScenarioValidationError(issues);
+  // Explicit construction avoids spreading untrusted properties into application state.
+  return { version: 1, pool: data.p, share: data.s, price: data.t, main: data.m, extras: [...data.e],
+    roles: Object.fromEntries(ROLES.map((r, i) => [r.id, { count: data.r[i][0], weight: data.r[i][1] }])) };
+}
