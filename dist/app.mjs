@@ -1,3 +1,4 @@
+import { renderAirdropCard } from './card.mjs';
 import { ROLES, defaults, calculate, scenarioData, readScenario } from './model.mjs';
 import { DISCLAIMER } from './config.mjs';
 import { requestJson, createVerifier, resultMatches } from './api.mjs';
@@ -83,13 +84,14 @@ function assumptionsChanged() {
 function update(animate = false) {
   revision++;
   output = calculate(state);
+  renderAirdropCard(state, output, sharedUrl);
   $('extra-count').textContent = `${state.extras.length} SELECTED`;
   $('clear-extras').disabled = state.extras.length === 0;
   $('model-status').textContent = assumptionsChanged() ? 'CUSTOM ASSUMPTIONS' : 'REFERENCE DEFAULTS';
   const budget = Number.isFinite(state.pool * state.share) ? state.pool * state.share / 100 : NaN;
   $('summary-pool').textContent = Number.isFinite(budget) ? compact.format(budget) + ' RITUAL' : '—';
   $('stat-pool').replaceChildren(document.createTextNode(fmt(state.pool) + ' '), small('RITUAL'));
-  $('stat-pool').nextElementSibling.textContent = state.pool === 50000000 ? 'From the published airdrop pool' : 'Your custom total-pool assumption';
+  $('stat-pool').nextElementSibling.textContent = state.pool === 50000000 ? 'Editable community pool assumption' : 'Your custom total-pool assumption';
   $('stat-price').replaceChildren(document.createTextNode(Number.isFinite(state.price) ? priceFormat(state.price) + ' ' : '— '), small('USD'));
   const memberships = ROLES.reduce((sum, r) => sum + state.roles[r.id].count, 0);
   $('stat-memberships').replaceChildren(document.createTextNode(fmt(memberships) + ' '), small('across 11 roles'));
@@ -302,43 +304,7 @@ function wrapText(ctx, text, x, y, width, lineHeight) {
   return y + lineHeight;
 }
 
-$('download-card').addEventListener('click', async () => {
-  if (!output.valid) return;
-  const cardState = readScenario(scenarioData(state));
-  const cardOutput = calculate(cardState);
-  try { await brandLogo.decode(); } catch { toast('The Ritual logo could not load. Please try again.'); return; }
-  const canvas = document.createElement('canvas'); canvas.width = 1200; canvas.height = 1100;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) { toast('Image download is unavailable in this browser. Use Copy my result.'); return; }
-  ctx.fillStyle = '#1a6b4a'; ctx.fillRect(0, 0, 1200, 1100);
-  ctx.strokeStyle = '#ffffff0b'; ctx.lineWidth = 1;
-  for (let i = 0; i < 1200; i += 60) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 1100); ctx.stroke(); }
-  for (let i = 0; i < 1100; i += 60) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1200, i); ctx.stroke(); }
-  ctx.drawImage(brandLogo, 65, 39, 108, 108);
-  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 35px Arial'; ctx.fillText('ritual / airdrop playground', 196, 90);
-  ctx.font = '16px Arial'; ctx.fillStyle = '#c5e8d9'; ctx.fillText('COMMUNITY EXPERIMENT · UNOFFICIAL · JUST FOR FUN', 196, 130);
-  ctx.fillStyle = '#f4f9ee'; ctx.font = 'italic 58px Georgia'; ctx.fillText('My hypothetical bag.', 70, 230);
-  ctx.fillStyle = '#ffffff'; fitText(ctx, fmt(cardOutput.tokens), 65, 365, 1050, 128);
-  ctx.font = '24px Arial'; ctx.fillText('RITUAL TOKENS', 72, 412);
-  ctx.fillStyle = '#ffffff'; fitText(ctx, money(cardOutput.usd), 70, 490, 1050, 52);
-  ctx.font = '20px Arial'; ctx.fillStyle = '#c5e8d9'; ctx.fillText(`at an assumed ${priceFormat(cardState.price)} per RITUAL`, 72, 529);
-  ctx.strokeStyle = '#61a98a'; ctx.beginPath(); ctx.moveTo(70, 562); ctx.lineTo(1130, 562); ctx.stroke();
-  ctx.font = '16px Arial'; ctx.fillStyle = '#c5e8d9'; ctx.fillText('MY ROLES', 70, 602);
-  let y = 641;
-  for (const r of cardOutput.selected) {
-    ctx.fillStyle = '#ffffff'; ctx.font = '21px Arial'; ctx.textAlign = 'left'; ctx.fillText(r.name, 70, y);
-    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right'; ctx.fillText(`${decimals.format(r.perHolder)} RITUAL`, 1130, y); ctx.textAlign = 'left'; y += 34;
-  }
-  ctx.fillStyle = '#c5e8d9'; ctx.font = '18px Arial';
-  ctx.fillText(`Modelled pool: ${fmt(cardOutput.budget)} RITUAL (${cardState.share}% of ${fmt(cardState.pool)})`, 70, 922);
-  ctx.fillText('Exponential weights · Unverified role counts · Extra roles add together', 70, 954);
-  ctx.fillStyle = '#ffffff'; ctx.font = '18px Arial';
-  wrapText(ctx, DISCLAIMER, 70, 1007, 1060, 27);
-  canvas.toBlob(blob => {
-    if (!blob) { toast('Could not create the image. Use Copy my result instead.'); return; }
-    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'my-hypothetical-ritual-bag.png'; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000); toast('Your just-for-fun result card is ready.');
-  }, 'image/png');
-});
+$('download-card').addEventListener('click', () => $('card-download').click());
 
 buildInputs(); syncInputs(); update(); renderBoard();
 if (startupMessage) toast(startupMessage);
