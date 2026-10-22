@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1a6b4a">
+  <meta name="description" content="A little hopium, a lot of maths. Explore a hypothetical Ritual airdrop with your community roles and editable assumptions. Unofficial and just for fun.">
+  <meta property="og:title" content="Ritual Airdrop Playground">
+  <meta property="og:description" content="Pick your roles. Play with the assumptions. See your hypothetical bag.">
+  <meta property="og:type" content="website">
+  <title>Ritual Airdrop Playground · Just for fun</title>
+  <link rel="icon" href="assets/ritual-logo.jpg" type="image/jpeg">
+  <link rel="apple-touch-icon" href="assets/ritual-logo.jpg">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="refinements.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+<a class="skip" href="#calculator">Skip to calculator</a>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+  <symbol id="i-seed" viewBox="0 0 24 24"><path d="M12 21V11M12 14C5 14 4 8 4 5c6 0 8 3 8 7M12 10c0-6 4-8 8-8 0 5-2 9-8 9"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.7 7.3L22 12l-7.3 2.7L12 22l-2.7-7.3L2 12l7.3-2.7Z"/></symbol>
+  <symbol id="i-diamond" viewBox="0 0 24 24"><path d="m12 2 9 10-9 10L3 12Z M3 12h18M12 2l-4 10 4 10 4-10Z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 2c1 6 7 7 7 13a7 7 0 0 1-14 0c0-3 2-5 4-7 0 4 1 5 3 5 2-4 1-7 0-11Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 1v3m0 16v3M1 12h3m16 0h3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
+  <symbol id="i-node" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 2v4m6-4v4M9 18v4m6-4v4M2 9h4m-4 6h4m12-6h4m-4 6h4M10 10h4v4h-4Z"/></symbol>
+  <symbol id="i-crown" viewBox="0 0 24 24"><path d="m3 6 4 4 5-7 5 7 4-4-2 12H5ZM5 22h14"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 6-6 6 6 6m10-12 6 6-6 6M14 3l-4 18"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11a9 9 0 0 1-9 9H3l2-5a9 9 0 1 1 16-4ZM8 10h8m-8 4h5"/></symbol>
+  <symbol id="i-orbit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="11" ry="5" transform="rotate(-35 12 12)"/><path d="M6 4a9 9 0 0 1 14 10M4 10a9 9 0 0 0 13 10"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V3H3v13h5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="m9 15 6-6M8 16l-2 2a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0m2 10a4 4 0 0 0 6 0l5-5a4 4 0 0 0-6-6l-2 2" transform="translate(1 0) scale(.9)"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 2v13m-5-5 5 5 5-5M3 16v6h18v-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+</defs></svg>
+<div class="page-shell">
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Ritual Airdrop Playground home"><img class="brand-logo" src="assets/ritual-logo.jpg" alt="Ritual logo" width="48" height="48"><span class="brand-name">ritual<span class="brand-separator">/</span><span class="brand-product">airdrop playground</span></span></a>
+    <nav aria-label="Main navigation"><a href="#explore">Compare roles</a><a href="#assumptions" id="nav-assumptions">Assumptions <span aria-hidden="true">↗</span></a><span class="community-pill"><i></i> Community edition</span></nav>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy"><p class="eyebrow"><span></span> A LITTLE HOPIUM. A LOT OF MATHS.</p><h1 id="hero-title">What’s in your<br><em>hypothetical</em> bag?</h1><p class="hero-description">Your roles. Your assumptions. Your what-if moment.<br class="desktop-break"> Explore a playful Ritual airdrop scenario, one slider at a time.</p><div class="hero-links"><a class="hero-cta" href="#calculator">Explore my airdrop <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a><span>Made for Ritualists, with curiosity.</span></div></div>
+      <div class="hero-art ritual-art" aria-hidden="true"><div class="logo-orbit"></div><div class="logo-orbit inner"></div><div class="logo-stage"><img src="assets/ritual-logo.jpg" alt="" width="240" height="240"></div><span class="art-tag">COMMUNITY / POSSIBILITIES</span><span class="coordinate">01 — RITUAL AIRDROP LAB</span></div>
+    </section>
+    <div class="context-strip"><div><span class="context-dot"></span><strong>Just for fun.</strong><span>Unofficial estimates, never guaranteed rewards.</span></div><span class="connection-note">No wallet or Discord connection needed</span></div>
+    <section class="calculator-layout" id="calculator" aria-label="Airdrop calculator">
+      <div class="selection-panel">
+        <section aria-labelledby="main-heading"><div class="section-heading"><span class="step-number">01</span><div><h2 id="main-heading">Choose your main role</h2><p>One main role per person. Pick the one you hold.</p></div><span class="small-label">SELECT ONE</span></div><div id="main-roles" class="main-role-grid" role="radiogroup" aria-labelledby="main-heading"></div></section>
+        <div class="section-divider"></div>
+        <section aria-labelledby="extra-heading"><div class="section-heading"><span class="step-number">02</span><div><h2 id="extra-heading">Add your extra roles</h2><p>Got a few more? Their rewards stack in this model.</p></div><span id="extra-count" class="small-label">0 SELECTED</span></div><div id="extra-roles" class="extra-role-grid"></div></section>
+        <div class="selection-bottom"><span><span class="live-dot"></span> Your estimate updates as you choose</span><button class="text-button" id="clear-extras" type="button">Clear extras</button></div>
+        <div class="section-divider"></div>
+        <section class="play-controls" aria-labelledby="play-heading"><div class="section-heading"><span class="step-number">03</span><div><h2 id="play-heading">Play with the possibilities</h2><p>Move a slider. See the difference instantly.</p></div></div>
+          <div class="slider-field"><div class="slider-title"><label for="price-slider">Assumed token price</label><label class="compact-input"><span>$</span><input id="play-price" type="number" min="0" max="100000" step="any" inputmode="decimal" aria-label="Scenario token price"></label></div><input id="price-slider" class="range-control" type="range" min="0" max="1" step="0.001" value="0.05" aria-label="Adjust assumed token price"><div class="range-labels"><span>$0</span><span id="price-range-max">$1.00</span></div><div class="price-presets inline-presets"><button type="button" data-price="0.01">$0.01</button><button type="button" data-price="0.05">$0.05</button><button type="button" data-price="0.10">$0.10</button><button type="button" data-price="0.20">$0.20</button></div></div>
+          <div class="slider-field share-field"><div class="slider-title"><label for="share-slider">Pool share for these roles</label><output id="play-share" for="share-slider">100%</output></div><input id="share-slider" class="range-control" type="range" min="0" max="100" step="1" value="100" aria-label="Adjust percentage of pool assigned to these roles"><div class="range-labels"><span>0%</span><span id="play-budget">50M RITUAL modelled</span><span>100%</span></div><p class="slider-help">Reserve the rest for contributors outside this model.</p></div>
+        </section>
+      </div>
+      <aside class="result-panel" id="result" aria-label="Your hypothetical estimate">
+        <div class="result-topline"><span>YOUR HYPOTHETICAL BAG</span><span class="fun-badge">WHAT IF?</span></div>
+        <img class="result-logo" src="assets/ritual-logo.jpg" alt="" aria-hidden="true" width="140" height="140">
+        <div id="result-error" class="result-error" role="alert" hidden></div>
+        <div class="result-number-wrap"><p class="result-number" id="token-total">5,693</p><span class="token-label">RITUAL TOKENS</span></div>
+        <div class="value-line"><span id="usd-total">$284.64</span><span>at <strong id="result-price">$0.05</strong> / RITUAL</span></div>
+        <p class="estimate-note">A scenario to play with. Not a claimable balance.</p>
+        <div class="result-divider"></div>
+        <div class="breakdown-heading"><h3>Your role breakdown</h3><span id="selected-count">1 ROLE</span></div><div id="breakdown" class="breakdown"></div>
+        <div class="composition-track" id="composition-track" aria-hidden="true"></div><p class="composition-caption" id="composition-caption"></p>
+        <div class="scenario-summary"><div><span>Modelled pool</span><strong id="summary-pool">50M</strong></div><div><span>Weight model</span><strong>Exponential</strong></div><a href="#assumptions" id="edit-assumptions">Edit <span aria-hidden="true">↗</span></a></div>
+        <button id="copy-result" class="primary-button" type="button"><svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg>Copy my result<svg class="icon arrow" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+        <div class="result-actions"><button id="copy-link" type="button"><svg class="icon" aria-hidden="true"><use href="#i-link"></use></svg>Copy scenario link</button><button id="download-card" type="button"><svg class="icon" aria-hidden="true"><use href="#i-download"></use></svg>Save card</button></div>
+        <button class="pin-button" id="pin-scenario" type="button"><span aria-hidden="true">＋</span> Save this scenario <span class="pin-counter" id="pin-counter">0 / 3</span></button>
+        <p id="result-live" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+      </aside>
+    </section>
+    <section class="model-stats" aria-label="Model summary"><div><span class="stat-label">TOTAL AIRDROP INPUT</span><strong id="stat-pool">50,000,000 <small>RITUAL</small></strong><p>From the published airdrop pool</p></div><div><span class="stat-label">ASSUMED TOKEN PRICE</span><strong id="stat-price">$0.05 <small>USD</small></strong><p>A scenario price, not a live quote</p></div><div><span class="stat-label">ROLE MEMBERSHIPS</span><strong id="stat-memberships">3,953 <small>across 11 roles</small></strong><p>Overlapping roles count separately</p></div></section>
+    <section class="explore-panel" id="explore" aria-labelledby="explore-heading"><div class="explore-top"><div><p class="eyebrow">SAME ASSUMPTIONS. DIFFERENT ROLES.</p><h2 id="explore-heading">What if your role changed?</h2><p>Your selected extras stay included. Tap a role to try it.</p></div><div class="segmented" role="group" aria-label="Comparison display"><button type="button" data-compare="tokens" aria-pressed="true">RITUAL</button><button type="button" data-compare="usd" aria-pressed="false">USD</button></div></div><div class="role-comparison" id="role-comparison" aria-label="Compare main roles"></div><p class="comparison-note" id="comparison-note"></p></section>
+    <section class="saved-panel" aria-labelledby="saved-heading"><div class="saved-heading"><div><h2 id="saved-heading">Your scenario board</h2><p>Save up to three combinations to compare. Stored only in this browser.</p></div><button class="text-button light" id="reset-all" type="button">Start fresh</button></div><div id="saved-scenarios" class="saved-scenarios"></div></section>
+    <details class="assumptions-panel" id="assumptions"><summary><div class="assumptions-heading"><span class="settings-mark" aria-hidden="true">↳</span><div><h2>Make it your own.</h2><p>Edit the pool, price, holder counts and role weights.</p></div></div><span class="assumptions-summary-right"><span id="model-status">REFERENCE DEFAULTS</span><span class="plus" aria-hidden="true">+</span></span></summary>
+      <div class="assumptions-body"><div class="assumptions-intro"><p>The defaults reproduce the community reference image. Counts and role weights are <strong>unverified assumptions</strong>, not an official allocation formula.</p><button class="outline-button" id="reset-assumptions" type="button">Reset assumptions</button></div>
+        <div class="global-inputs"><label>Total airdrop pool <span class="input-shell"><input id="pool-input" type="number" min="1" max="1000000000000" step="1" inputmode="numeric" aria-describedby="pool-help"><span>RITUAL</span></span><small id="pool-help">The total pool before applying your modelled share.</small></label><label>Share assigned to these roles <span class="input-shell"><input id="share-input" type="number" min="0" max="100" step="0.1" inputmode="decimal" aria-describedby="share-help"><span>%</span></span><small id="share-help">Lower it to reserve tokens for other contributors.</small></label><label>Assumed token price <span class="input-shell"><span>$</span><input id="price-input" type="number" min="0" max="100000" step="any" inputmode="decimal" aria-describedby="price-help"><span>USD</span></span><small id="price-help">Changing price affects dollar value, not token amounts.</small></label></div>
+        <div class="price-presets"><span>Try a price:</span><button type="button" data-price="0.01">$0.01</button><button type="button" data-price="0.05">$0.05</button><button type="button" data-price="0.10">$0.10</button><button type="button" data-price="0.20">$0.20</button></div>
+        <div class="table-label"><h3>Role assumptions</h3><span>Effective multiplier = e<sup>(weight − 1)</sup></span></div>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Editable role assumptions; scroll horizontally on small screens"><table><caption class="sr-only">Role counts and weights, with calculated per-person allocation</caption><thead><tr><th scope="col">Role</th><th scope="col">Assumed holders</th><th scope="col">Weight</th><th scope="col">Multiplier</th><th scope="col">RITUAL / holder</th><th scope="col">Pool share</th></tr></thead><tbody id="assumption-rows"></tbody><tfoot><tr><th scope="row">Total memberships</th><td id="table-memberships">3,953</td><td colspan="2" class="allocation-label">Combined allocation</td><td id="table-allocation">50,000,000</td><td id="table-share">100%</td></tr></tfoot></table></div>
+        <p class="source-note">Reference check: the image’s rows add up to <strong>3,953 role memberships</strong>; its printed total says 3,453. This calculator uses the individual rows. Memberships can overlap and do not represent a unique user count.</p>
+      </div>
+    </details>
+    <section class="formula-section" id="formula" aria-labelledby="formula-heading"><div class="formula-heading"><p class="eyebrow">OPEN ASSUMPTIONS. NO MYSTERY NUMBERS.</p><h2 id="formula-heading">Here’s the maths.</h2><p>Every role gets a weighted share of the same pool.<br>Your selected roles add together.</p></div><div class="formula-content"><ol><li><span>01</span><p><strong>Turn weights into multipliers.</strong> A weight of 1 becomes 1×. A weight of 1.8 becomes about 2.23×, using e<sup>(weight − 1)</sup>.</p></li><li><span>02</span><p><strong>Balance the entire pool.</strong> Divide the modelled token pool by the sum of holder count × multiplier across all 11 categories.</p></li><li><span>03</span><p><strong>Add your roles.</strong> Multiply that base amount by each selected role’s multiplier, then add them. Multiply tokens by your assumed price for the dollar value.</p></li></ol><div class="formula-code"><span>YOUR ESTIMATE</span><code>modelled pool × your combined multipliers<br>÷ total weighted memberships</code></div><p class="formula-footnote">Extra roles stack independently here, including the Genesis categories. Real eligibility, overlap rules and role allocations may differ. The published airdrop also covers Infernet operators, Frenrug users and community contributors.</p><div class="source-links"><a href="assets/reference.png" target="_blank" rel="noopener">View community reference <span aria-hidden="true">↗</span></a><a href="https://tokenomics.ritualfoundation.org/" target="_blank" rel="noopener">Official tokenomics <span aria-hidden="true">↗</span></a></div></div></section>
+  </main>
+  <footer><a class="footer-brand" href="./"><img src="assets/ritual-logo.jpg" alt="Ritual logo" width="31" height="31"> ritual airdrop playground</a><p>Made for the community. Unofficial and not endorsed by Ritual.<br>Your selections stay in this browser. No wallet, login or claim process.</p><span class="footer-signoff">gRitual <span aria-hidden="true">↗</span></span></footer>
+</div>
+<div class="mobile-result" aria-label="Quick result"><div><span>YOUR WHAT-IF BAG</span><strong id="mobile-tokens">5,693 RITUAL</strong></div><a href="#result"><span id="mobile-usd">$284.64</span><span aria-hidden="true">↗</span></a></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<dialog id="copy-dialog"><div class="copy-dialog-heading"><h2>Copy your scenario</h2><button id="close-dialog" aria-label="Close copy dialog" type="button">×</button></div><p>Copy the text below:</p><textarea id="copy-fallback" readonly aria-label="Scenario text to copy"></textarea><button id="select-text" class="outline-button" type="button">Select text</button></dialog>
+<noscript><div class="noscript">Please enable JavaScript to use this calculator. All calculations run locally in your browser.</div></noscript>
+</body>
+</html>
